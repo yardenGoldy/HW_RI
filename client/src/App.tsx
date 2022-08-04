@@ -5,6 +5,7 @@ import {createApiClient, Ticket} from './api';
 export type AppState = {
 	tickets?: Ticket[],
 	search: string;
+	showContents: any;
 }
 
 const api = createApiClient();
@@ -12,7 +13,8 @@ const api = createApiClient();
 export class App extends React.PureComponent<{}, AppState> {
 
 	state: AppState = {
-		search: ''
+		search: '',
+		showContents: {}
 	}
 
 	searchDebounce: any = null;
@@ -23,6 +25,14 @@ export class App extends React.PureComponent<{}, AppState> {
 		});
 	}
 
+	onClickTicket = (id: string) => {
+		this.setState(prevState => {
+			let showContents = Object.assign({}, prevState.showContents);
+			showContents[id] = !showContents[id];
+			return {showContents};
+		})
+	}
+
 	renderTickets = (tickets: Ticket[]) => {
 
 		const filteredTickets = tickets
@@ -30,10 +40,14 @@ export class App extends React.PureComponent<{}, AppState> {
 
 
 		return (<ul className='tickets'>
-			{filteredTickets.map((ticket) => (<li key={ticket.id} className='ticket'>
+			{filteredTickets.map((ticket) => (
+			<li key={ticket.id} className='ticket' onClick={this.onClickTicket.bind(this, ticket.id)}>
 				<h5 className='title'>{ticket.title}</h5>
 				<footer>
-					<div className='meta-data'>By {ticket.userEmail} | { new Date(ticket.creationTime).toLocaleString()}</div>
+					<div className='meta-data'>
+						By {ticket.userEmail} | { new Date(ticket.creationTime).toLocaleString()}
+						<pre className='content'>{this.state.showContents[ticket.id] === true ? ticket.content: null}</pre>
+					</div>
 				</footer>
 			</li>))}
 		</ul>);
