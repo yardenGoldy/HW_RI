@@ -6,6 +6,8 @@ export type AppState = {
 	tickets?: Ticket[],
 	search: string;
 	showContents: any;
+	hiddenTickets: any;
+	ticketHoverId: string;
 }
 
 const api = createApiClient();
@@ -14,7 +16,9 @@ export class App extends React.PureComponent<{}, AppState> {
 
 	state: AppState = {
 		search: '',
-		showContents: {}
+		showContents: {},
+		hiddenTickets: {},
+		ticketHoverId: ''
 	}
 
 	searchDebounce: any = null;
@@ -33,6 +37,38 @@ export class App extends React.PureComponent<{}, AppState> {
 		})
 	}
 
+	showAll = () => {
+		this.setState({
+			hiddenTickets: {}
+		})
+	}
+
+	onClickHideButton = (id: string) => {
+		this.setState(prevState => {
+			let hiddenTickets = Object.assign({}, prevState.hiddenTickets);
+			hiddenTickets[id] = !hiddenTickets[id];
+			return {hiddenTickets};
+		})
+	}
+
+	handleMouseOver = (id: string) => {
+		if(this.state.ticketHoverId !== id)
+		{
+			this.setState({
+				ticketHoverId: id
+			})
+		}
+	}
+
+	handleMouseOut = (id: string) => {
+		if(this.state.ticketHoverId === id)
+		{
+			this.setState({
+				ticketHoverId: ''
+			})
+		}
+	}
+
 	renderTickets = (tickets: Ticket[]) => {
 
 		const filteredTickets = tickets
@@ -41,6 +77,9 @@ export class App extends React.PureComponent<{}, AppState> {
 
 		return (<ul className='tickets'>
 			{filteredTickets.map((ticket) => (
+			!this.state.hiddenTickets[ticket.id] ?
+			<div onMouseEnter={this.handleMouseOver.bind(this, ticket.id)} onMouseLeave={this.handleMouseOut.bind(this, ticket.id)}>
+			{this.state.ticketHoverId === ticket.id ? <button onClick={this.onClickHideButton.bind(this, ticket.id)}>Hide</button> : null}
 			<li key={ticket.id} className='ticket' onClick={this.onClickTicket.bind(this, ticket.id)}>
 				<h5 className='title'>{ticket.title}</h5>
 				<footer>
@@ -49,7 +88,9 @@ export class App extends React.PureComponent<{}, AppState> {
 						<pre className='content'>{this.state.showContents[ticket.id] === true ? ticket.content: null}</pre>
 					</div>
 				</footer>
-			</li>))}
+			</li>
+			</div> : null
+			))}
 		</ul>);
 	}
 
@@ -65,14 +106,15 @@ export class App extends React.PureComponent<{}, AppState> {
 	}
 
 	render() {	
-		const {tickets} = this.state;
+		const {tickets, hiddenTickets} = this.state;
 
 		return (<main>
 			<h1>Tickets List</h1>
 			<header>
 				<input type="search" placeholder="Search..." onChange={(e) => this.onSearch(e.target.value)}/>
 			</header>
-			{tickets ? <div className='results'>Showing {tickets.length} results</div> : null }	
+			<button onClick={this.showAll}>Restore</button>
+			{tickets ? <div className='results'>Showing {tickets.length - Object.keys(hiddenTickets).length} results</div> : null }	
 			{tickets ? this.renderTickets(tickets) : <h2>Loading..</h2>}
 		</main>)
 	}
