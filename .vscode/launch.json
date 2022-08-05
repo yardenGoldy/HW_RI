@@ -1,0 +1,18 @@
+{
+    "configurations": [
+
+        {
+            "type": "node",
+            "cwd": "${workspaceFolder}/server",
+            "request": "launch",
+            "name": "server",
+            "runtimeArgs": [
+                "-r",
+                "ts-node/register"
+            ],
+            "args": [
+                "index.ts"
+            ]
+        }
+    ]
+}
