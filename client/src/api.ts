@@ -2,7 +2,7 @@ import axios from 'axios';
 import {APIRootPath} from '@fed-exam/config';
 
 export type Ticket = {
-    id: string,
+    id?: string,
     title: string;
     content: string;
     creationTime: number;
@@ -10,14 +10,23 @@ export type Ticket = {
     labels?: string[];
 }
 
+export type GetTicketsReponse = {
+    tickets: Array<Ticket>
+    cardinality: number
+}
+
 export type ApiClient = {
-    getTickets: () => Promise<Ticket[]>;
+    getTickets: (page?:number) => Promise<GetTicketsReponse>;
+    addTicket: (ticket: Ticket) => Promise<Ticket>;
 }
 
 export const createApiClient = (): ApiClient => {
     return {
-        getTickets: () => {
-            return axios.get(APIRootPath).then((res) => res.data);
+        getTickets: (page:number = 1) => {
+            return axios.get(`${APIRootPath}?page=${page}`).then((res) => res.data);
+        },
+        addTicket: (ticket: Ticket) => {
+            return axios.post(APIRootPath + "/add", ticket).then((res) => res.data);
         }
     }
 }

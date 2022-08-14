@@ -1,6 +1,7 @@
 import React from 'react';
 import './App.scss';
 import {createApiClient, Ticket} from './api';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 export type AppState = {
 	tickets?: Ticket[],
@@ -8,6 +9,8 @@ export type AppState = {
 	showContents: any;
 	hiddenTickets: any;
 	ticketHoverId: string;
+	hasMoreTickets: boolean;
+	totalNumberOfTickets?: number;
 }
 
 const api = createApiClient();
@@ -18,14 +21,18 @@ export class App extends React.PureComponent<{}, AppState> {
 		search: '',
 		showContents: {},
 		hiddenTickets: {},
-		ticketHoverId: ''
+		ticketHoverId: '',
+		hasMoreTickets: true
 	}
 
 	searchDebounce: any = null;
+	countPage = 1
 
 	async componentDidMount() {
+		const result = await api.getTickets()
 		this.setState({
-			tickets: await api.getTickets()
+			tickets: result.tickets,
+			totalNumberOfTickets: result.cardinality
 		});
 	}
 
@@ -68,6 +75,31 @@ export class App extends React.PureComponent<{}, AppState> {
 			})
 		}
 	}
+	async copyTicket(ticket: Ticket){
+		const copiedTicket = Object.assign({}, ticket) as Ticket;
+		delete copiedTicket.id;
+		const newTicket = await api.addTicket(copiedTicket);
+		this.setState(prevState => ({
+			tickets: [...prevState.tickets!, newTicket]
+		  }))
+	}
+
+	fetchMoreData = () => {
+		this.countPage++;
+		if (this.state.tickets!.length >= this.state.totalNumberOfTickets!) {
+		  this.setState({ hasMoreTickets: false });
+		  return;
+		}
+		// a fake async api call like which sends
+		// 20 more records in .5 secs
+		setTimeout(async () => {
+			let result = await api.getTickets(this.countPage)
+		  this.setState({
+			tickets: this.state.tickets!.concat(result.tickets),
+			totalNumberOfTickets: result.cardinality
+		  });
+		}, 500);
+	  };
 
 	renderTickets = (tickets: Ticket[]) => {
 
@@ -76,21 +108,34 @@ export class App extends React.PureComponent<{}, AppState> {
 
 
 		return (<ul className='tickets'>
+			<InfiniteScroll
+          dataLength={filteredTickets.length}
+          next={this.fetchMoreData}
+          hasMore={this.state.hasMoreTickets}
+          loader={<h4>Loading...</h4>}
+          endMessage={
+            <p style={{ textAlign: "center" }}>
+              <b>Yay! You have seen it all</b>
+            </p>
+          }
+        >
 			{filteredTickets.map((ticket) => (
-			!this.state.hiddenTickets[ticket.id] ?
-			<div onMouseEnter={this.handleMouseOver.bind(this, ticket.id)} onMouseLeave={this.handleMouseOut.bind(this, ticket.id)}>
+			!this.state.hiddenTickets[ticket.id!] ?
+			<div key={ticket.id + "ticket_wrapper"} onMouseEnter={this.handleMouseOver.bind(this, ticket.id!)} onMouseLeave={this.handleMouseOut.bind(this, ticket.id!)}>
+			<button onClick={this.copyTicket.bind(this, ticket)}>Copy</button>
 			{this.state.ticketHoverId === ticket.id ? <button onClick={this.onClickHideButton.bind(this, ticket.id)}>Hide</button> : null}
-			<li key={ticket.id} className='ticket' onClick={this.onClickTicket.bind(this, ticket.id)}>
+			<li key={ticket.id} className='ticket' onClick={this.onClickTicket.bind(this, ticket.id!)}>
 				<h5 className='title'>{ticket.title}</h5>
 				<footer>
 					<div className='meta-data'>
 						By {ticket.userEmail} | { new Date(ticket.creationTime).toLocaleString()}
-						<pre className='content'>{this.state.showContents[ticket.id] === true ? ticket.content: null}</pre>
+						<pre className='content'>{this.state.showContents[ticket.id!] === true ? ticket.content: null}</pre>
 					</div>
 				</footer>
 			</li>
 			</div> : null
 			))}
+			</InfiniteScroll>
 		</ul>);
 	}
 

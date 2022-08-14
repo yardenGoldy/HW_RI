@@ -35,8 +35,14 @@ app.get(APIPath, (async (req, res) => {
 
   // @ts-ignore
   const page: number = req.query.page || 1;
-  const data = await db.getTickets();
+  const data = await db.getTickets(page);
 
+  res.json(data);
+}));
+
+app.post(APIPath + "/add", (async (req, res) => {
+  // todo validate ticket
+  const data = await db.addTicket(req.body);
   res.json(data);
 }));
 
